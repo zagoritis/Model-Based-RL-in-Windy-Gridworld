@@ -18,15 +18,50 @@ class DynaAgent:
         self.learning_rate = learning_rate
         self.gamma = gamma
         # TO DO: Initialize relevant elements
+        self.Q_sa = np.zeros((n_states, n_actions))
+        self.n = np.zeros((n_states, n_actions, n_states))
+        self.R_sum = np.zeros((n_states, n_actions, n_states))
         
     def select_action(self, s, epsilon):
         # TO DO: Change this to e-greedy action selection
-        a = np.random.randint(0,self.n_actions) # Replace this with correct action selection
+        # a = np.random.randint(0,self.n_actions) # Replace this with correct action selection
+        p = np.random.rand()
+        if p < epsilon:
+            a = np.random.randint(self.n_actions)
+        else:
+            a = np.argmax(self.Q_sa[s, :])
         return a
         
     def update(self,s,a,r,done,s_next,n_planning_updates):
         # TO DO: Add Dyna update
-        pass
+        self.n[s, a, s_next] += 1
+        self.R_sum[s, a, s_next] += r
+
+        if done:
+            self.Q_sa[s,a] += self.learning_rate * (r - self.Q_sa[s,a])
+        else:
+            a_next = self.select_action(s_next, 0.1) # Maybe change later WE DON'T KNOW
+            self.Q_sa[s, a] += self.learning_rate * (r + self.gamma * self.Q_sa[s_next, a_next] - self.Q_sa[s, a])
+
+        for K in range(n_planning_updates):
+            # Get all (s, a) pairs with observed transitions
+            previous_state_action = np.argwhere(np.sum(self.n, axis=2) > 0)
+            if len(previous_state_action) == 0:
+                break
+            s_prev, a_prev = previous_state_action[np.random.randint(len(previous_state_action))]
+
+            # Compute p_hat(s' | s_prev, a_prev)
+            n_total = np.sum(self.n[s_prev, a_prev]) # this is denominator
+            if n_total == 0:
+                continue
+            p_hat = self.n[s_prev, a_prev] / n_total
+            s_prime = np.random.choice(self.n_states, p=p_hat)
+
+            # Compute r_hat(s_prev, a_prev, s_prime)
+            r_hat = self.R_sum[s_prev, a_prev, s_prime] / self.n[s_prev, a_prev, s_prime]
+
+            # Q-learning update using simulated model
+            self.Q_sa[s_prev, a_prev] += self.learning_rate * (r_hat + self.gamma * np.max(self.Q_sa[s_prime]) - self.Q_sa[s_prev, a_prev])
 
     def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=100):
         returns = []  # list to store the reward per episode
