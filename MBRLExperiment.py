@@ -28,13 +28,13 @@ def experiment():
             mean_returns = run_repetition("dyna", n_repetitions, n_timesteps, eval_interval, wind_proportion, n_planning_updates, learning_rate, epsilon, gamma)
             smooth_plot = smooth(mean_returns, window=5)
             plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot, label=f'Dyna{n_planning_updates} plans')
-        plot.set_ylim(-2000, 100)
-        plot.save(f'Dyna{wind_proportion} wind.png')
+        plot.set_ylim(-100, 100)
+        plot.save(f'./figures/Dyna{wind_proportion}.png')
 
 def run_repetition(agent_type, n_repetitions, n_timesteps, eval_interval, wind_proportion, n_planning_updates, learning_rate=0.1, epsilon=0.1, gamma=1.0):
     total_returns = []
     env = WindyGridworld(wind_proportion=wind_proportion)
-    for _ in range(n_repetitions):
+    for z in range(n_repetitions):
         if agent_type == 'dyna':
             agent = DynaAgent(n_states=env.n_states, n_actions=env.n_actions, learning_rate=learning_rate, gamma=gamma)
         elif agent_type == 'prioritizedsweeping':
@@ -47,9 +47,14 @@ def run_repetition(agent_type, n_repetitions, n_timesteps, eval_interval, wind_p
             s_next, r, done = env.step(a)
             agent.update(s=s, a=a, r=r, done=done, s_next=s_next, n_planning_updates=n_planning_updates)
 
+            if done:
+                s = env.reset()
+            else:
+                s = s_next
+
             if i % eval_interval == 0:
                 eval_returns.append(agent.evaluate(env))
-                print(i)
+                print(f'{z}:{i}')
         total_returns.append(eval_returns)
     return np.mean(total_returns, axis=0)
 

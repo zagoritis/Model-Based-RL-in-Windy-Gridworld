@@ -40,8 +40,9 @@ class DynaAgent:
         if done:
             self.Q_sa[s,a] += self.learning_rate * (r - self.Q_sa[s,a])
         else:
-            a_next = self.select_action(s_next, 0.1) # Maybe change later WE DON'T KNOW
-            self.Q_sa[s, a] += self.learning_rate * (r + self.gamma * self.Q_sa[s_next, a_next] - self.Q_sa[s, a])
+            #a_next = self.select_action(s_next, 0.1) # Maybe change later 
+            next_=np.max(self.Q_sa[s_next]) # MAYBE CHANGE LATER
+            self.Q_sa[s, a] += self.learning_rate * (r + self.gamma * next_ - self.Q_sa[s, a])
 
         for K in range(n_planning_updates):
             # Get all (s, a) pairs with observed transitions
