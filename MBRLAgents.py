@@ -40,8 +40,8 @@ class DynaAgent:
         if done:
             self.Q_sa[s,a] += self.learning_rate * (r - self.Q_sa[s,a])
         else:
-            #a_next = self.select_action(s_next, 0.1) # Maybe change later 
-            next_=np.max(self.Q_sa[s_next]) # MAYBE CHANGE LATER
+            #next_ = self.Q_sa[s_next, self.select_action(s_next, 0.1)] # Maybe change later
+            next_ = np.max(self.Q_sa[s_next]) # MAYBE CHANGE LATER
             self.Q_sa[s, a] += self.learning_rate * (r + self.gamma * next_ - self.Q_sa[s, a])
 
         for K in range(n_planning_updates):
@@ -91,10 +91,17 @@ class PrioritizedSweepingAgent:
         self.priority_cutoff = priority_cutoff
         self.queue = PriorityQueue()
         # TO DO: Initialize relevant elements
+        self.Q_sa = np.zeros((n_states, n_actions))
+        self.n = np.zeros((n_states, n_actions, n_states))
+        self.R_sum = np.zeros((n_states, n_actions, n_states))
         
     def select_action(self, s, epsilon):
         # TO DO: Change this to e-greedy action selection
-        a = np.random.randint(0,self.n_actions) # Replace this with correct action selection
+        p = np.random.rand()
+        if p < epsilon:
+            a = np.random.randint(self.n_actions)
+        else:
+            a = np.argmax(self.Q_sa[s, :])
         return a
         
     def update(self,s,a,r,done,s_next,n_planning_updates):
@@ -106,7 +113,35 @@ class PrioritizedSweepingAgent:
         # self.queue.put((-p,(s,a))) 
         # Retrieve the top (s,a) from the queue
         # _,(s,a) = self.queue.get() # get the top (s,a) for the queue
-        pass
+        self.n[s, a, s_next] += 1
+        self.R_sum[s, a, s_next] += r
+        if done:
+            p = abs(r - self.Q_sa[s, a])
+        else:
+            p = abs(r + self.gamma * np.max(self.Q_sa[s_next]) - self.Q_sa[s,a])
+        if p > self.priority_cutoff:
+            self.queue.put((-p,(s,a)))
+
+        for K in range(n_planning_updates):
+            if self.queue.empty():
+                break
+            _, (s_p, a_p) = self.queue.get()
+
+            n_total = np.sum(self.n[s_p, a_p])
+            if n_total == 0:
+                continue
+            p_hat = self.n[s_p, a_p] / n_total
+            s_prime = np.random.choice(self.n_states, p=p_hat)
+
+            r_hat = self.R_sum[s_p, a_p, s_prime] / self.n[s_p, a_p, s_prime]
+
+            self.Q_sa[s_p, a_p] += self.learning_rate * (r_hat + self.gamma * np.max(self.Q_sa[s_prime]) - self.Q_sa[s_p, a_p])
+
+            for s_bar, a_bar in np.argwhere(self.n[:, :, s_p] > 0):
+                r_bar = self.R_sum[s_bar, a_bar, s_p] / self.n[s_bar, a_bar, s_p]
+                p = abs(r_bar + self.gamma * np.max(self.Q_sa[s_p]) - self.Q_sa[s_bar, a_bar])
+                if p > self.priority_cutoff:
+                    self.queue.put((-p, (s_bar, a_bar)))
 
     def evaluate(self,eval_env,n_eval_episodes=30, max_episode_length=100):
         returns = []  # list to store the reward per episode

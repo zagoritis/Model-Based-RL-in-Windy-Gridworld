@@ -22,14 +22,45 @@ def experiment():
     wind_proportions = [0.9,1.0]
     n_planning_updatess = [1,3,5]
 
-    for wind_proportion in wind_proportions:
-        plot = LearningCurvePlot(title='Dyna')
+    def create_plot(algorithm, algorithm_prefix):
+        plot = LearningCurvePlot(title=algorithm_prefix)
         for n_planning_updates in n_planning_updatess:
-            mean_returns = run_repetition("dyna", n_repetitions, n_timesteps, eval_interval, wind_proportion, n_planning_updates, learning_rate, epsilon, gamma)
+            mean_returns = run_repetition(algorithm, n_repetitions, n_timesteps, eval_interval, wind_proportion, n_planning_updates, learning_rate, epsilon, gamma)
             smooth_plot = smooth(mean_returns, window=5)
-            plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot, label=f'Dyna{n_planning_updates} plans')
+            plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot, label=f'{algorithm}{n_planning_updates} plans')
+        h_lines = run_repetition("dyna", n_repetitions, n_timesteps, eval_interval, wind_proportion, 0, learning_rate, epsilon, gamma)
+        baseline_value = h_lines[-1]
+        plot.add_hline(baseline_value, label='Q-learning baseline')
         plot.set_ylim(-100, 100)
-        plot.save(f'./figures/Dyna{wind_proportion}.png')
+        plot.save(f'./figures/{algorithm_prefix}{wind_proportion}.png')
+
+    for wind_proportion in wind_proportions:
+        create_plot("dyna", 'Dyna')
+        create_plot("prioritizedsweeping", 'PrioritizedSweeping')
+
+    # for wind_proportion in wind_proportions:
+    #     plot = LearningCurvePlot(title='Dyna')
+    #     for n_planning_updates in n_planning_updatess:
+    #         mean_returns = run_repetition("dyna", n_repetitions, n_timesteps, eval_interval, wind_proportion, n_planning_updates, learning_rate, epsilon, gamma)
+    #         smooth_plot = smooth(mean_returns, window=5)
+    #         plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot, label=f'Dyna{n_planning_updates} plans')
+    #     h_lines = run_repetition("dyna", n_repetitions, n_timesteps, eval_interval, wind_proportion, 0, learning_rate, epsilon, gamma)
+    #     baseline_value = h_lines[-1]
+    #     plot.add_hline(baseline_value, label="Q-learning baseline")
+    #     plot.set_ylim(-100, 100)
+    #     plot.save(f'./figures/Dyna{wind_proportion}.png')
+    #
+    # for wind_proportion in wind_proportions:
+    #     plot = LearningCurvePlot(title='PrioritizedSweeping')
+    #     for n_planning_updates in n_planning_updatess:
+    #         mean_returns = run_repetition("prioritizedsweeping", n_repetitions, n_timesteps, eval_interval, wind_proportion, n_planning_updates, learning_rate, epsilon, gamma)
+    #         smooth_plot = smooth(mean_returns, window=5)
+    #         plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot, label=f'PrioritizedSweeping{n_planning_updates} plans')
+    #     h_lines = run_repetition("prioritizedsweeping", n_repetitions, n_timesteps, eval_interval, wind_proportion, 0, learning_rate, epsilon, gamma)
+    #     baseline_value = h_lines[-1]
+    #     plot.add_hline(baseline_value, label="PrioritizedSweeping baseline")
+    #     plot.set_ylim(-100, 100)
+    #     plot.save(f'./figures/PrioritizedSweeping{wind_proportion}.png')
 
 def run_repetition(agent_type, n_repetitions, n_timesteps, eval_interval, wind_proportion, n_planning_updates, learning_rate=0.1, epsilon=0.1, gamma=1.0):
     total_returns = []
