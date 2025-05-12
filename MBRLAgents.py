@@ -11,20 +11,17 @@ from queue import PriorityQueue
 from MBRLEnvironment import WindyGridworld
 
 class DynaAgent:
-
     def __init__(self, n_states, n_actions, learning_rate, gamma):
         self.n_states = n_states
         self.n_actions = n_actions
         self.learning_rate = learning_rate
         self.gamma = gamma
-        # TO DO: Initialize relevant elements
+
         self.Q_sa = np.zeros((n_states, n_actions))
         self.n = np.zeros((n_states, n_actions, n_states))
         self.R_sum = np.zeros((n_states, n_actions, n_states))
         
     def select_action(self, s, epsilon):
-        # TO DO: Change this to e-greedy action selection
-        # a = np.random.randint(0,self.n_actions) # Replace this with correct action selection
         p = np.random.rand()
         if p < epsilon:
             a = np.random.randint(self.n_actions)
@@ -33,7 +30,6 @@ class DynaAgent:
         return a
         
     def update(self,s,a,r,done,s_next,n_planning_updates):
-        # TO DO: Add Dyna update
         self.n[s, a, s_next] += 1
         self.R_sum[s, a, s_next] += r
 
@@ -57,10 +53,8 @@ class DynaAgent:
                 continue
             p_hat = self.n[s_prev, a_prev] / n_total
             s_prime = np.random.choice(self.n_states, p=p_hat)
-
             # Compute r_hat(s_prev, a_prev, s_prime)
             r_hat = self.R_sum[s_prev, a_prev, s_prime] / self.n[s_prev, a_prev, s_prime]
-
             # Q-learning update using simulated model
             self.Q_sa[s_prev, a_prev] += self.learning_rate * (r_hat + self.gamma * np.max(self.Q_sa[s_prime]) - self.Q_sa[s_prev, a_prev])
 
@@ -82,7 +76,6 @@ class DynaAgent:
         return mean_return
 
 class PrioritizedSweepingAgent:
-
     def __init__(self, n_states, n_actions, learning_rate, gamma, priority_cutoff=0.01):
         self.n_states = n_states
         self.n_actions = n_actions
@@ -90,13 +83,12 @@ class PrioritizedSweepingAgent:
         self.gamma = gamma
         self.priority_cutoff = priority_cutoff
         self.queue = PriorityQueue()
-        # TO DO: Initialize relevant elements
+
         self.Q_sa = np.zeros((n_states, n_actions))
         self.n = np.zeros((n_states, n_actions, n_states))
         self.R_sum = np.zeros((n_states, n_actions, n_states))
         
     def select_action(self, s, epsilon):
-        # TO DO: Change this to e-greedy action selection
         p = np.random.rand()
         if p < epsilon:
             a = np.random.randint(self.n_actions)
@@ -105,22 +97,15 @@ class PrioritizedSweepingAgent:
         return a
         
     def update(self,s,a,r,done,s_next,n_planning_updates):
-        
-        # TO DO: Add Prioritized Sweeping code
-        
-        # Helper code to work with the queue
-        # Put (s,a) on the queue with priority p (needs a minus since the queue pops the smallest priority first)
-        # self.queue.put((-p,(s,a))) 
-        # Retrieve the top (s,a) from the queue
-        # _,(s,a) = self.queue.get() # get the top (s,a) for the queue
         self.n[s, a, s_next] += 1
         self.R_sum[s, a, s_next] += r
+
         if done:
             p = abs(r - self.Q_sa[s, a])
         else:
             p = abs(r + self.gamma * np.max(self.Q_sa[s_next]) - self.Q_sa[s,a])
         if p > self.priority_cutoff:
-            self.queue.put((-p,(s,a)))
+            self.queue.put((-p, (s,a)))
 
         for K in range(n_planning_updates):
             if self.queue.empty():
@@ -132,9 +117,7 @@ class PrioritizedSweepingAgent:
                 continue
             p_hat = self.n[s_p, a_p] / n_total
             s_prime = np.random.choice(self.n_states, p=p_hat)
-
             r_hat = self.R_sum[s_p, a_p, s_prime] / self.n[s_p, a_p, s_prime]
-
             self.Q_sa[s_p, a_p] += self.learning_rate * (r_hat + self.gamma * np.max(self.Q_sa[s_prime]) - self.Q_sa[s_p, a_p])
 
             for s_bar, a_bar in np.argwhere(self.n[:, :, s_p] > 0):
