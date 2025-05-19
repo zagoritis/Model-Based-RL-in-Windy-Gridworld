@@ -49,8 +49,8 @@ def experiment():
         mean_returns_prsw, mean_time_prsw = run_repetitions('prsw', n_repetitions, n_timesteps, eval_interval, wind_proportion, n_planning_prsw, learning_rate, epsilon, gamma)
         smooth_plot_dyna = smooth(mean_returns_dyna, window=5)
         smooth_plot_prsw = smooth(mean_returns_prsw, window=5)
-        plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot_dyna, label='dyna5 plans')
-        plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot_prsw, label='prsw5 plans')
+        plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot_dyna, label=f'dyna{n_planning_dyna} plans')
+        plot.add_curve(np.arange(0, n_timesteps, eval_interval), smooth_plot_prsw, label=f'prsw{n_planning_prsw} plans')
         
         mean_returns_qlearning, mean_time_qlearning = run_repetitions("dyna", n_repetitions, n_timesteps, eval_interval, wind_proportion, 0, learning_rate, epsilon, gamma)
         baseline_value_dyna = mean_returns_qlearning[-1]
